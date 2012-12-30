@@ -1,0 +1,29 @@
+$$$ demo $$$
+
+#advantages-of-hamler
+  %h1 Advantages of Hamler
+  %ul
+    - $v.advantages.each do |adv|
+      %li
+        %h2= $v.adv.title
+        %p= $v.adv.desc
+        - if $v.adv.goodfor !== undefined
+          %p
+            Which is good for: 
+            %strong= $v.adv.goodfor
+        - else
+          %p
+            %strong Good for everyone!
+  %hr
+  %h3 Some random stats
+  %ul
+    %li
+      Total lines of CoffeeScript: 
+      %em= $v.stats.linesCs
+    %li
+      Total lines of generated JavaScript: 
+      %em= $v.stats.linesJs
+    %li
+      Size of minified JavaScript: 
+      %em= $v.stats.sizeJs
+      %abbr{ :title => 'kilobyte' } kB

@@ -1,0 +1,6 @@
+{
+  "name": "hamler",
+  "description": "Client-side Haml parser in CoffeeScript",
+  "author": "Arjan Eising <arjan@arjaneising.nl>",
+  "version": "0.0.1"
+}
