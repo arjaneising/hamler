@@ -29,5 +29,5 @@ $$$ demo $$$
       %em= $v.stats.linesJs
     %li
       Size of minified JavaScript: 
-      %em= $v.stats.sizeJs
+      %em= ($v.stats.sizeJs / 1024).toFixed(2)
       %abbr{ :title => 'kilobyte' } kB
