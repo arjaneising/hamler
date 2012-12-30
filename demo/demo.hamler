@@ -2,6 +2,10 @@ $$$ demo $$$
 
 #advantages-of-hamler
   %h1 Advantages of Hamler
+  %p
+    %i
+      See also the main repository at:
+      %a{ :href => 'https://github.com/arjaneising/hamler' } github.com/arjaneising/hamler
   %ul
     - $v.advantages.each do |adv|
       %li
