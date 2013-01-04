@@ -5,7 +5,7 @@
     var fixture, haml, pElms;
     fixture = $('#qunit-fixture');
     fixture.children().remove();
-    haml = new Hamler("%p.abc\n%p.def.ghijkl\n%p#mno\n%p.abc#def.ghi\n%p( tabindex = \"5\" )\n%p( tabindex = \"6\", rel = \"foo\" )\n%p( rel = $v.foo )\n%p{ :rel => \"foo\" }\n%p{ :rel => $v.foo, :ref => 'ola' }", {
+    haml = new Hamler("%p.abc\n%p.def.ghijkl\n%p#mno\n%p.abc#def.ghi\n%p( tabindex = \"5\" )\n%p( tabindex = \"6\", rel = \"foo\" )\n%p( rel = @foo )\n%p{ :rel => \"foo\" }\n%p{ :rel => @foo, :ref => 'ola' }\n%p{ :data-lol => `@foo + @foo + @foo.length` }", {
       append: fixture[0],
       vars: {
         foo: 'hello'
@@ -25,7 +25,8 @@
     equal(pElms.eq(6).attr('rel'), 'hello', 'We want the attr `rel` to be "hello" on the seventh paragraph');
     equal(pElms.eq(7).attr('rel'), 'foo', 'We want the attr `rel` to be "foo" on the eighth paragraph');
     equal(pElms.eq(8).attr('rel'), 'hello', 'We want the attr `rel` to be "hello" on the ninth paragraph');
-    return equal(pElms.eq(8).attr('ref'), 'ola', 'We want the attr `ref` to be "ola" on the ninth paragraph');
+    equal(pElms.eq(8).attr('ref'), 'ola', 'We want the attr `ref` to be "ola" on the ninth paragraph');
+    return equal(pElms.eq(9).attr('data-lol'), 'hellohello5', 'We want the attr `data-lol` to be "hellohello5" on the tenth paragraph');
   });
 
   test('It should indent simple documents properly', function() {
@@ -80,18 +81,19 @@
   });
 
   test('It should be able to make decisions based on passed arguments', function() {
-    var ch, divElm, fixture, haml;
+    var ch, divElm, fixture, haml, someDiffCh;
     fixture = $('#qunit-fixture');
     fixture.children().remove();
-    haml = new Hamler(".test-abc\n  - if $v.first === 'Hello'\n    %p= $v.first\n  - else\n    %p FAIL\n  %hr.first\n  - unless true\n    %p FAIL\n  - else\n    %p WIN\n  %hr.second\n  - if $v.first.length > 999\n    %p FAIL\n  - elseif $v.first.length < 2\n    %p ALSO FAIL\n    .fail\n      %p Indent failure?\n  - else\n    %p WIN\n  %hr.third", {
+    haml = new Hamler(".test-abc\n  - if @first === 'Hello'\n    %p= @first\n  - else\n    %p FAIL\n  %hr.first\n  - unless true\n    %p FAIL\n  - else\n    %p WIN\n  %hr.second\n  - if @first.length > 999\n    %p FAIL\n  - elseif @first.length < 2\n    %p ALSO FAIL\n    .fail\n      %p Indent failure?\n  - else\n    %p WIN\n  %hr.third\n  %h2 TEST FIRST?\n  .some-diff\n    %h3 TEST AGAIN?\n    - if true\n      %span WIN\n    - else\n      %strong FAIL\n    %p\n      = @first\n      DUDE\n- if true\n  %p.winwinwin LOLWUT", {
       append: fixture[0],
       vars: {
         first: 'Hello'
       }
     });
     divElm = fixture.find('.test-abc');
+    someDiffCh = fixture.find('.some-diff').children();
     ch = divElm.children();
-    equal(ch.length, 6, 'The div should contain three direct children');
+    equal(ch.length, 8, 'The div should contain three direct children');
     ok(ch.eq(0).is('p'), 'The first child should be a paragraph');
     notEqual(ch.eq(0).text().indexOf('Hello'), -1, 'The first child should contain "Hello"');
     ok(ch.eq(1).is('hr.first'), 'The second child should be a horizontal line with class `first`');
@@ -99,14 +101,27 @@
     notEqual(ch.eq(2).text().indexOf('WIN'), -1, 'The third child should contain "WIN"');
     ok(ch.eq(3).is('hr.second'), 'The fourth child should be a horizontal line with class `second`');
     notEqual(ch.eq(4).text().indexOf('WIN'), -1, 'The fifth child should contain "WIN"');
-    return ok(ch.eq(5).is('hr.third'), 'The sixth child should be a horizontal line with class `third`');
+    ok(ch.eq(5).is('hr.third'), 'The sixth child should be a horizontal line with class `third`');
+    notEqual(ch.eq(6).text().indexOf('TEST FIRST?'), -1, 'The seventh child should contain "TEST FIRST?"');
+    ok(ch.eq(6).is('h2'), 'The seventh child should be a paragraph');
+    ok(ch.eq(7).is('div.some-diff'), 'The eighth child should be a div with class `some-diff`');
+    equal(someDiffCh.length, 3);
+    ok(someDiffCh.eq(0).is('h3'), 'First elm should be a H3');
+    notEqual(someDiffCh.eq(0).text().indexOf('TEST AGAIN?'), -1, 'The first elm should contain "TEST AGAIN?"');
+    ok(someDiffCh.eq(1).is('span'), 'Second elm should be a SPAN');
+    notEqual(someDiffCh.eq(1).text().indexOf('WIN'), -1, 'The second elm should contain "WIN"');
+    ok(someDiffCh.eq(2).is('p'), 'Third elm should be a P');
+    notEqual(someDiffCh.eq(2).text().indexOf('Hello'), -1, 'The third elm should contain "Hello"');
+    notEqual(someDiffCh.eq(2).text().indexOf('DUDE'), -1, 'The third elm should contain "DUDE"');
+    equal(divElm.next('p.winwinwin').length, 1, 'There should be a paragraph after the div');
+    return console.log(someDiffCh[2].innerHTML);
   });
 
   test('It should be able to repeat stuff', function() {
     var blinkElms, ch, fixture, haml, hashElm, li, liElms, numbersElm, pElms, strongElms, ulElm;
     fixture = $('#qunit-fixture');
     fixture.children().remove();
-    haml = new Hamler(".test-numbers\n  - $v.numbers.each do |number|\n    %p\n      Your lucky number is!\n      %strong= $v.number\n      - if $v.number > 100\n        %blink AWESOME\n.test-hashes\n  %ul#portfolio\n    - $v.portfolio.each do |item|\n      %li{ :data-foo => $v.item.foo }\n        %h2= $v.item.name\n        %p= $v.item.desc", {
+    haml = new Hamler(".test-numbers\n  - @numbers.each do |number|\n    %p\n      Your lucky number is!\n      %strong= @number\n      - if @number > 100\n        %blink AWESOME\n.test-hashes\n  %ul#portfolio\n    - @portfolio.each do |item|\n      %li{ :data-foo => @item.foo }\n        %h2= @item.name\n        %p= @item.desc", {
       append: fixture[0],
       vars: {
         numbers: [400, 8123, 42, 3.14],

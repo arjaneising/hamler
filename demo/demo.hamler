@@ -7,14 +7,14 @@ $$$ demo $$$
       See also the main repository at:
       %a{ :href => 'https://github.com/arjaneising/hamler' } github.com/arjaneising/hamler
   %ul
-    - $v.advantages.each do |adv|
+    - @advantages.each do |adv|
       %li
-        %h2= $v.adv.title
-        %p= $v.adv.desc
-        - if $v.adv.goodfor !== undefined
+        %h2= @adv.title
+        %p= @adv.desc
+        - if @adv.goodfor !== undefined
           %p
             Which is good for: 
-            %strong= $v.adv.goodfor
+            %strong= @adv.goodfor
         - else
           %p
             %strong Good for everyone!
@@ -23,11 +23,11 @@ $$$ demo $$$
   %ul
     %li
       Total lines of CoffeeScript: 
-      %em= $v.stats.linesCs
+      %em= @stats.linesCs
     %li
       Total lines of generated JavaScript: 
-      %em= $v.stats.linesJs
+      %em= @stats.linesJs
     %li
       Size of minified JavaScript: 
-      %em= ($v.stats.sizeJs / 1024).toFixed(2)
+      %em= (@stats.sizeJs / 1024).toFixed(2)
       %abbr{ :title => 'kilobyte' } kB

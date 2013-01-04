@@ -44,9 +44,9 @@ $$$ random $$$
 .some-class
   %h1 A title
   %ul
-    %li= $v.obj.foo
-    %li= $v.obj.bar
-    %li= $v.obj.baz
+    %li= @obj.foo
+    %li= @obj.bar
+    %li= @obj.baz
  
 $$$ another $$$
 …
@@ -61,35 +61,41 @@ Variables are passed as object to the options object as second argument to the r
 In the templates, you can access them like this for echo-ing:
 
 ```
-%h1= $v.variableName
+%h1= @variableName
 ```
 
 Or as an attribute:
 
 ```
-%p{ :class => $v.someClass }
+%p{ :class => @someClass }
 ```
 
 Although on some places you can modify the variables using JavaScript, it should at all times be avoided and be taken care of in the regular JavaScript.
+
+If you want to do calculations for the attributes, wrap them arround backticks:
+
+```
+%p{ :class => `Math.sqrt(@someClass.length * 5)` }
+```
 
 ### Control structures
 
 ```
 %h1
-  - if $v.title.length > 100
-    = $v.title.substr(0, 100) + '…'
-  - elseif $v.title.length === 42
-    = $v.title.toUpperCase()
+  - if @title.length > 100
+    = @title.substr(0, 100) + '…'
+  - elseif @title.length === 42
+    = @title.toUpperCase()
   - else
-    = $v.title
+    = @title
 ``` 
 
 You can also use `unless`. Note there is no space between the `else` and `if` in `elseif`.
 
 ```
 %ul.items
-  - $v.items.each do |item|
-    %li= $v.item
+  - @items.each do |item|
+    %li= @item
 ```
 
 ---

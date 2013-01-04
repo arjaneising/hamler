@@ -10,9 +10,10 @@ test 'It should append attributes properly', ->
                     %p.abc#def.ghi
                     %p( tabindex = "5" )
                     %p( tabindex = "6", rel = "foo" )
-                    %p( rel = $v.foo )
+                    %p( rel = @foo )
                     %p{ :rel => "foo" }
-                    %p{ :rel => $v.foo, :ref => 'ola' }
+                    %p{ :rel => @foo, :ref => 'ola' }
+                    %p{ :data-lol => `@foo + @foo + @foo.length` }
                     """,
     append: fixture[0],
     vars:
@@ -42,6 +43,8 @@ test 'It should append attributes properly', ->
 
   equal pElms.eq(8).attr('rel'), 'hello', 'We want the attr `rel` to be "hello" on the ninth paragraph'
   equal pElms.eq(8).attr('ref'), 'ola', 'We want the attr `ref` to be "ola" on the ninth paragraph'
+
+  equal pElms.eq(9).attr('data-lol'), 'hellohello5', 'We want the attr `data-lol` to be "hellohello5" on the tenth paragraph'
 
 
 
@@ -142,8 +145,8 @@ test 'It should be able to make decisions based on passed arguments', ->
 
   haml = new Hamler """
                     .test-abc
-                      - if $v.first === 'Hello'
-                        %p= $v.first
+                      - if @first === 'Hello'
+                        %p= @first
                       - else
                         %p FAIL
                       %hr.first
@@ -152,25 +155,38 @@ test 'It should be able to make decisions based on passed arguments', ->
                       - else
                         %p WIN
                       %hr.second
-                      - if $v.first.length > 999
+                      - if @first.length > 999
                         %p FAIL
-                      - elseif $v.first.length < 2
+                      - elseif @first.length < 2
                         %p ALSO FAIL
                         .fail
                           %p Indent failure?
                       - else
                         %p WIN
                       %hr.third
+                      %h2 TEST FIRST?
+                      .some-diff
+                        %h3 TEST AGAIN?
+                        - if true
+                          %span WIN
+                        - else
+                          %strong FAIL
+                        %p
+                          = @first
+                          DUDE
+                    - if true
+                      %p.winwinwin LOLWUT
                     """,
     append: fixture[0],
     vars:
       first: 'Hello'
 
   divElm = fixture.find '.test-abc'
+  someDiffCh = fixture.find('.some-diff').children()
 
   ch = divElm.children()
 
-  equal ch.length, 6, 'The div should contain three direct children'
+  equal ch.length, 8, 'The div should contain three direct children'
   ok ch.eq(0).is('p'), 'The first child should be a paragraph'
   notEqual ch.eq(0).text().indexOf('Hello'), -1, 'The first child should contain "Hello"'
   ok ch.eq(1).is('hr.first'), 'The second child should be a horizontal line with class `first`'
@@ -179,7 +195,22 @@ test 'It should be able to make decisions based on passed arguments', ->
   ok ch.eq(3).is('hr.second'), 'The fourth child should be a horizontal line with class `second`'
   notEqual ch.eq(4).text().indexOf('WIN'), -1, 'The fifth child should contain "WIN"'
   ok ch.eq(5).is('hr.third'), 'The sixth child should be a horizontal line with class `third`'
+  notEqual ch.eq(6).text().indexOf('TEST FIRST?'), -1, 'The seventh child should contain "TEST FIRST?"'
+  ok ch.eq(6).is('h2'), 'The seventh child should be a paragraph'
+  ok ch.eq(7).is('div.some-diff'), 'The eighth child should be a div with class `some-diff`'
 
+  equal someDiffCh.length, 3
+  ok someDiffCh.eq(0).is('h3'), 'First elm should be a H3'
+  notEqual someDiffCh.eq(0).text().indexOf('TEST AGAIN?'), -1, 'The first elm should contain "TEST AGAIN?"'
+  ok someDiffCh.eq(1).is('span'), 'Second elm should be a SPAN'
+  notEqual someDiffCh.eq(1).text().indexOf('WIN'), -1, 'The second elm should contain "WIN"'
+  ok someDiffCh.eq(2).is('p'), 'Third elm should be a P'
+  notEqual someDiffCh.eq(2).text().indexOf('Hello'), -1, 'The third elm should contain "Hello"'
+  notEqual someDiffCh.eq(2).text().indexOf('DUDE'), -1, 'The third elm should contain "DUDE"'
+
+  equal divElm.next('p.winwinwin').length, 1, 'There should be a paragraph after the div'
+
+  console.log someDiffCh[2].innerHTML
 
 
 
@@ -190,18 +221,18 @@ test 'It should be able to repeat stuff', ->
 
   haml = new Hamler """
                     .test-numbers
-                      - $v.numbers.each do |number|
+                      - @numbers.each do |number|
                         %p
                           Your lucky number is!
-                          %strong= $v.number
-                          - if $v.number > 100
+                          %strong= @number
+                          - if @number > 100
                             %blink AWESOME
                     .test-hashes
                       %ul#portfolio
-                        - $v.portfolio.each do |item|
-                          %li{ :data-foo => $v.item.foo }
-                            %h2= $v.item.name
-                            %p= $v.item.desc
+                        - @portfolio.each do |item|
+                          %li{ :data-foo => @item.foo }
+                            %h2= @item.name
+                            %p= @item.desc
                     """,
     append: fixture[0],
     vars:
@@ -265,3 +296,4 @@ test 'It should be able to repeat stuff', ->
   li = liElms.eq 2
 
   equal li.attr('data-foo'), 'booboo', 'The first list item should have a foo data attr with value "booboo"'
+

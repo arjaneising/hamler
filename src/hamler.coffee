@@ -156,6 +156,7 @@ class Hamler
               $v = @cloneObj vars
               $v[corr.key] = value
               appendParents[corr.level].appendChild @haml corr.collected, $v
+            appendParents[corr.level] = appendParents[corr.level - 1].lastChild
 
         else
           if level > corr.level
@@ -167,6 +168,7 @@ class Hamler
             if corr.collected.length
               $v = @cloneObj vars
               appendParents[corr.level].appendChild @haml corr.collected, $v
+              appendParents[corr.level + 1] = appendParents[corr.level].lastChild
 
 
       unless shouldParseLine
@@ -216,15 +218,9 @@ class Hamler
       unless elm
         continue
 
-
       # We unindented one or more levels
       if level < prevLevel
-        # As many unindents as needed
-        for i in [0...(prevLevel - level)]
-          l = appendParents.length
-          continue if l < 3
-          appendParents[l - 2].appendChild appendParents[l - 1]
-          appendParents.splice l - 1, 1
+        appendParents.splice level + 1, prevLevel - level
         appendParents[appendParents.length - 2].appendChild elm
         appendParents[appendParents.length - 1] = elm
 
@@ -235,8 +231,8 @@ class Hamler
 
       # Indentend one level, append current node as first child of the parent node
       else if level - prevLevel is 1
-        appendParents[appendParents.length - 1].appendChild elm
-        appendParents.push elm
+        appendParents[level].appendChild elm
+        appendParents[level + 1] = elm
 
       else
         throw 'Too much indentation'
@@ -258,7 +254,6 @@ class Hamler
           $v = @cloneObj vars
           appendParents[corr.level].appendChild @haml corr.collected, $v
           appendParents.splice corr.level + 1, Infinity
-
 
     return appendParents[0]
 
@@ -289,9 +284,9 @@ class Hamler
 
     parsed = line.match /// ^
       (%[a-zA-Z0-9]+)? # element
-      (\.[-\w\u00C0-\uFFFF]+)? # classes before the id
+      (\.[.-\w\u00C0-\uFFFF]+)? # classes before the id
       (\#[-\w\u00C0-\uFFFF=$]+)? # id
-      (\.[-\w\u00C0-\uFFFF]+)? # classes after the id
+      (\.[.-\w\u00C0-\uFFFF]+)? # classes after the id
       ((\{[^}]+\})|(\([^)]+\)))? # other attributes
       (=?[\s]+[\s\S]+)? # actual content
       $ ///
@@ -300,18 +295,18 @@ class Hamler
     if parsed is null
       # Control structure
       if line.indexOf('-') is 0
-        action = line.match /^\-\s+(if|unless|elseif|else|\$v\.([a-zA-Z0-9.]+)\.each\sdo\s\|([a-zA-Z0-9]+)\|)/
+        action = line.match /^\-\s+(if|unless|elseif|else|@([a-zA-Z0-9.]+)\.each\sdo\s\|([a-zA-Z0-9]+)\|)/
         if action is null
           throw 'Unrecognized control structure'
         else
           if not action[2]
             if action[1] is 'if' or action[1] is 'unless'
-              show = eval line.substring(action[0].length)
+              show = @evaluate line.substring(action[0].length), $v
               show = not show if action[1] is 'unless'
               return 'if|s' if show
               return 'if|h'
             else if action[1] is 'elseif'
-              show = eval line.substring(action[0].length)
+              show = @evaluate line.substring(action[0].length), $v
               return 'elseif|h' unless show
               return 'elseif|o'
             else
@@ -323,6 +318,9 @@ class Hamler
         return @htmlify line
     # An actual element, build it
     else
+      if not (parsed[1] or parsed[2] or parsed[3] or parsed[4] or parsed[5]) and line.indexOf('=') is 0
+        return @htmlify @evaluate parsed[8].substr(1), $v
+
       # Element nodename
       nodeName = 'div'
       nodeName = parsed[1].substr(1) if parsed[1]
@@ -347,7 +345,7 @@ class Hamler
       if parsed[8]
         txt = parsed[8]
         if txt.indexOf('=') is 0
-          txt = eval parsed[8].substr 1 # eval = evil, I know. go ahead and fix this in your next pull request
+          txt = @evaluate parsed[8].substr(1), $v
         elm.appendChild @htmlify txt
 
       elm
@@ -370,9 +368,15 @@ class Hamler
 
 
 
+  evaluate: (str, $v) ->
+    str = str.replace /@([a-zA-Z0-9])/g, '$v.$1'
+    eval str
+
+
+
 
   # Loop over all tokens, recognise attribute names and their values from it
-  parseAttrs: (attrs, str, $v) ->
+  parseAttrs: (attrs, str, vars) ->
     tokens = str.substr(1, str.length - 2).split ''
 
     addUpUntil = ''
@@ -400,6 +404,9 @@ class Hamler
       else if token is '"' and not addUpUntil
         addUpUntil = '"'
         ignoreSpaces = false
+      else if token is "`" and not addUpUntil
+        addUpUntil = "`"
+        ignoreSpaces = false
       else if token is "'" and not addUpUntil
         addUpUntil = "'"
         ignoreSpaces = false
@@ -408,7 +415,7 @@ class Hamler
         addUpUntil = '>'
       else if token is '=' and not addUpUntil
         addUpUntil = ' '
-      else if token is '$' and nextToken is 'v' and not addUpUntil
+      else if token is '@' and not addUpUntil
         addUpUntil = ', '
 
     attr = null
@@ -417,10 +424,12 @@ class Hamler
     for part in parts
       if part.indexOf('"') is 0 or part.indexOf("'") is 0
         value = part.substr 1, part.length - 2
-      else if part.indexOf('$v') is 0
+      else if part.indexOf('@') is 0
         if part.lastIndexOf(',') is part.length - 1
           part = part.substr 0, part.length - 1
-        value = eval part # eval = evil, I know. go ahead and fix this in your next pull request
+        value = @evaluate part, vars
+      else if part.indexOf("`") is 0
+        value = @evaluate part.substr(1, part.length - 2), vars
       else
         if part.indexOf(':') is 0
           attr = part.substr 1, part.length - 3

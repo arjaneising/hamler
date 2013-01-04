@@ -32,7 +32,7 @@
         stats: {
           linesCs: 443,
           linesJs: 457,
-          sizeJs: 7216
+          sizeJs: 6646
         }
       }
     });
